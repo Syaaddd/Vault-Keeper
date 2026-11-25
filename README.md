@@ -2,7 +2,7 @@
 
 Skill Hermes untuk menggarap vault Obsidian `AsistenObsidian` (dan vault Obsidian lain yang ikut konvensi ini): mekanik baca/tulis note, disiplin kerja 5 fase, linter kesehatan vault, plus aturan pecah note besar.
 
-Versi: **2.4.0** (dulu bernama `obsidian`).
+Versi: **2.5.0** (dulu bernama `obsidian`).
 
 ## Isi
 
@@ -14,6 +14,7 @@ Versi: **2.4.0** (dulu bernama `obsidian`).
 | `templates/rekap-mingguan.md` | Template rekap lintas proyek mingguan |
 | `scripts/vault_lint.py` | Linter vault (stdlib Python, tanpa dependensi): link mati, pelanggaran konvensi wajib, sampah, note besar, note yatim, aksara CJK nyasar |
 | `scripts/vault_health.py` | Pembungkus tipis untuk cron: jalankan linter, cetak ringkasan 4-5 baris |
+| `scripts/vault_impact.py` | Skor pengaruh skill (0-100) per sesi vault + kirim ke Discord lewat `hermes send` |
 
 ## Pasang sebagai skill Hermes
 
@@ -37,6 +38,18 @@ python scripts/vault_lint.py --vault "D:/obsidian/AsistenObsidian" --report --in
 Opsi lain: `--list broken`, `--list konvensi`, `--list sampah`, `--list besar`, `--list yatim` (tanpa nilai = semua).
 
 Linter menulis dua berkas di vault: `04-Sistem/Vault Link Report.md` dan `04-Sistem/INDEX - Vault.md` (keduanya auto-generate, jangan diedit manual).
+
+## Skor pengaruh tiap sesi (fase LAPOR)
+
+Sesudah kerja vault, hitung dan kirim skor pengaruh sesi:
+
+```bash
+python scripts/vault_impact.py --send
+```
+
+Komponen skor: kesehatan vault 40 poin (pelanggaran wajib 0, sampah 0, link mati & note yatim tidak naik), efek kerja 40 poin (jumlah note berubah sejak laporan terakhir, termasuk jejak `data/`), alur 20 poin (note Keputusan/Rekap disentuh, index + report segar). State pembanding: `<vault>/04-Sistem/vault_impact_state.json`. Target kirim diatur konstanta `CHANNEL` di dalam skrip.
+
+Skor itu proksi terukur, bukan uji kausal: yang dinilai keadaan vault dan jejak kerja, bukan klaim "skill bikin hasil lebih baik". `--send-if-stale N` mengirim hanya kalau laporan terakhir lebih lama dari N jam (dipakai cron harian lewat `scripts/vault_impact_daily.py`). `--selftest` menguji rumus skor.
 
 ## Cek kesehatan berkala
 

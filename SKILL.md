@@ -1,7 +1,7 @@
 ---
 name: vaultkeeper
 description: Use when working in the Obsidian vault (notes, recap, lint).
-version: 2.4.0
+version: 2.5.0
 author: Teknium (teknium1), Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -16,9 +16,11 @@ metadata:
 Vault kerja: `D:/obsidian/AsistenObsidian` (`OBSIDIAN_VAULT_PATH` di `~/.hermes/.env`). Skill ini dua lapis:
 
 - **Mekanik** - baca, tulis, patch, wikilink, pitfall tool.
-- **Disiplin** - 5 fase ORIENT / THINK / WRITE / RECAP / TIDY, supaya vault dipakai untuk berpikir dan berkarya, bukan cuma menimbun catatan.
+- **Disiplin** - 6 fase ORIENT / THINK / WRITE / RECAP / TIDY / LAPOR, supaya vault dipakai untuk berpikir dan berkarya, bukan cuma menimbun catatan.
 
-Konvensi lengkap (peta folder, format note, aturan nama, tempat rekap): `references/konvensi-vault.md`. Template: `templates/note-keputusan.md`, `templates/rekap-mingguan.md`. Linter kanonik: `04-Sistem/scripts/vault_lint.py` di dalam vault (jalan di profil mana pun).
+Konvensi lengkap (peta folder, format note, aturan nama, tempat rekap): `references/konvensi-vault.md`. Template: `templates/note-keputusan.md`, `templates/rekap-mingguan.md`. Linter kanonik: `04-Sistem/scripts/vault_lint.py` di dalam vault (jalan di profil mana pun). Skor pengaruh sesi: `scripts/vault_impact.py`.
+
+Skill ini dipasang di semua profil agent dan dimuat otomatis di awal sesi yang menyentuh vault (aturan di `SOUL.md` tiap profil).
 
 ## 1. ORIENT - awal sesi, 1 file saja
 
@@ -74,6 +76,18 @@ Kalau vault sudah repo git, commit sebelum operasi besar dan pulihkan file salah
 `04-Sistem/vault_lint_allow.txt` menampung pola note yang aksara CJK-nya sengaja (nama layanan asing, kutipan bukti, data mentah `data/*.md`); linter melewati cek aksara untuk pola itu, jadi jangan buang waktu menghapus CJK di dalam data mentah.
 
 Cek kesehatan rutin: skrip `~/AppData/Local/hermes/scripts/vault_health.py` menjalankan linter lalu mencetak ringkasan pendek. Cron `Vault health mingguan` (id `6d9cb2cfe407`, Senin 08.00 WIB, mode `--no-agent`, kirim ke #minju-chat) memanggilnya; stdout skrip langsung jadi pesan, tanpa LLM. Kalau linter dipindah, ubah `LINT`/`VAULT` di skrip itu.
+
+## 6. LAPOR - skor pengaruh (tiap sesi vault)
+
+Sesudah kerja vault selesai (ujung fase TIDY), jalankan:
+
+```bash
+python "<skill>/scripts/vault_impact.py" --send
+```
+
+Skrip menghitung skor 0-100 lalu mengirimnya ke #monitoring-vault-keeper (`discord:1575174326922248344`) lewat `hermes send`. Komponen: kesehatan vault 40 (pelanggaran wajib 0, sampah 0, link mati & yatim tidak naik), efek kerja 40 (jumlah note berubah sejak laporan terakhir + jejak `data/`), alur 20 (note Keputusan/Rekap disentuh, index + report segar). Pembanding disimpan di `04-Sistem/vault_impact_state.json`.
+
+Skor itu proksi terukur (kesehatan vault + jejak kerja), bukan uji kausal. Laporkan apa adanya; jangan naikkan angka dengan mengarang kerja. Kalau pengiriman gagal, sebut kegagalannya di balasan akhir sesi, jangan diam.
 
 ## Vault path
 
