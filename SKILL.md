@@ -1,7 +1,7 @@
 ---
 name: vaultkeeper
 description: Use when working in the Obsidian vault (notes, recap, lint).
-version: 2.5.0
+version: 2.5.1
 author: Teknium (teknium1), Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -77,9 +77,9 @@ Kalau vault sudah repo git, commit sebelum operasi besar dan pulihkan file salah
 
 Cek kesehatan rutin: skrip `~/AppData/Local/hermes/scripts/vault_health.py` menjalankan linter lalu mencetak ringkasan pendek. Cron `Vault health mingguan` (id `6d9cb2cfe407`, Senin 08.00 WIB, mode `--no-agent`, kirim ke #minju-chat) memanggilnya; stdout skrip langsung jadi pesan, tanpa LLM. Kalau linter dipindah, ubah `LINT`/`VAULT` di skrip itu.
 
-## 6. LAPOR - skor pengaruh (tiap sesi vault)
+## 6. LAPOR - skor pengaruh (WAJIB tiap kali skill ini dimuat)
 
-Sesudah kerja vault selesai (ujung fase TIDY), jalankan:
+Kalau skill ini sudah dimuat di satu sesi, skrip ini dijalankan SEKALI di akhir sesi, apa pun hasilnya. Sesi yang cuma membaca tetap lapor: skornya rendah, dan itu jujur. Jangan menunggu ada perubahan vault dulu.
 
 ```bash
 python "<skill>/scripts/vault_impact.py" --send
@@ -88,6 +88,19 @@ python "<skill>/scripts/vault_impact.py" --send
 Skrip menghitung skor 0-100 lalu mengirimnya ke #monitoring-vault-keeper (`discord:1575174326922248344`) lewat `hermes send`. Komponen: kesehatan vault 40 (pelanggaran wajib 0, sampah 0, link mati & yatim tidak naik), efek kerja 40 (jumlah note berubah sejak laporan terakhir + jejak `data/`), alur 20 (note Keputusan/Rekap disentuh, index + report segar). Pembanding disimpan di `04-Sistem/vault_impact_state.json`.
 
 Skor itu proksi terukur (kesehatan vault + jejak kerja), bukan uji kausal. Laporkan apa adanya; jangan naikkan angka dengan mengarang kerja. Kalau pengiriman gagal, sebut kegagalannya di balasan akhir sesi, jangan diam.
+
+`--selftest` menguji rumus skor (batas 0 dan 100, kasus vault rusak). Jalankan setiap kali bobot komponen atau parsing lint diubah. `--send-if-stale N` melewati pengiriman kalau laporan terakhir lebih muda dari N jam, dipakai wrapper cron harian supaya sesi dan cron tidak dobel kirim.
+
+## Distribusi skill (ubah satu, sebar ke semua)
+
+Skill ini hidup di empat tempat dan wajib disamakan setiap kali isinya diubah:
+
+1. `~/AppData/Local/hermes/skills/note-taking/vaultkeeper/` - sumber kanonik (SKILL.md, references/, templates/, scripts/).
+2. `profiles/<nama>/skills/note-taking/vaultkeeper/` - salinan untuk tiap profil aktif. Salin ulang SELURUH folder dengan `shutil.copytree` setelah `shutil.rmtree`, jangan menambal satu berkas per profil; salinan yang tertinggal versinya bikin dua perilaku berbeda antar bot.
+3. `05-Skills/note-taking/vaultkeeper.md` di vault - mirror. Tulis dari badan `SKILL.md` (bagian setelah frontmatter) plus satu baris versi di atasnya, lalu commit di repo vault.
+4. Repo `Syaaddd/Vault-Keeper-` branch `main` - clone ke scratch, salin `SKILL.md` + `references/` `templates/` `scripts/`, commit (pesan bahasa Indonesia bergaya `feat(skill): ...`), push, lalu buktikan lewat `gh api repos/Syaaddd/Vault-Keeper-/git/trees/main?recursive=1`.
+
+Verifikasi sebaran tiap kali: baca `version:` di `SKILL.md` semua salinan dan pastikan `scripts/` lengkap di tiap profil. Naikkan versi setiap isi berubah supaya ketidaksamaan langsung kelihatan.
 
 ## Vault path
 
@@ -115,7 +128,7 @@ If the vault path is unknown, `terminal` is acceptable for resolving `OBSIDIAN_V
 - **Link mati**: cek target ada di daftar nama file aktual, termasuk underscore portal (`[[_Portal X]]`, bukan `[[Portal X]]`). Lewati blok kode saat memindai, kalau tidak contoh di dalam code block jadi false positive.
 - **`.obsidian/*.json`**: edit pakai `execute_code` + `json.dump()`, jangan `write_file`/`patch` (JSON satu baris bikin anchor patch tidak andal). Baca dulu supaya key lain tidak hilang.
 - **Teks panjang hasil generate**: assert tidak ada codepoint CJK/fullwidth dan assert sentinel yang mau disisipkan benar-benar masuk, sebelum `write_file`. Cek visual tidak cukup.
-- **`$TMPDIR`** tidak diteruskan ke kernel `execute_code`, dan di `terminal` artinya direktori temp Windows. Panggil skrip dengan path absolut, jangan `cd "$TMPDIR" && python x.py`.
+- **`$TMPDIR`**: tidak diteruskan ke kernel `execute_code`, dan di `terminal` variabelnya kosong sehingga `cd "$TMPDIR"` gagal `null directory`. Pakai path scratch absolut (`C:/Users/<user>/AppData/Local/hermes/cache/scratch`) dan panggil skrip dengan path absolut, jangan `cd "$TMPDIR" && python x.py`.
 - **Sumber 403/blokir**: ambil markdown mentah via `curl` ke raw URL, batch beberapa URL dalam satu `execute_code`.
 
 ## Stray / duplicate vault cleanup
