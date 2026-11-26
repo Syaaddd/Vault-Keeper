@@ -1,7 +1,7 @@
 ---
 name: vaultkeeper
 description: Use when working in the Obsidian vault (notes, recap, lint).
-version: 2.5.1
+version: 2.6.0
 author: Teknium (teknium1), Hermes Agent
 license: MIT
 platforms: [linux, macos, windows]
@@ -82,14 +82,22 @@ Cek kesehatan rutin: skrip `~/AppData/Local/hermes/scripts/vault_health.py` menj
 Kalau skill ini sudah dimuat di satu sesi, skrip ini dijalankan SEKALI di akhir sesi, apa pun hasilnya. Sesi yang cuma membaca tetap lapor: skornya rendah, dan itu jujur. Jangan menunggu ada perubahan vault dulu.
 
 ```bash
-python "<skill>/scripts/vault_impact.py" --send
+python "<skill>/scripts/vault_impact.py" --send --note "<apa yang dikerjakan sesi ini>"
 ```
 
-Skrip menghitung skor 0-100 lalu mengirimnya ke #monitoring-vault-keeper (`discord:1575174326922248344`) lewat `hermes send`. Komponen: kesehatan vault 40 (pelanggaran wajib 0, sampah 0, link mati & yatim tidak naik), efek kerja 40 (jumlah note berubah sejak laporan terakhir + jejak `data/`), alur 20 (note Keputusan/Rekap disentuh, index + report segar). Pembanding disimpan di `04-Sistem/vault_impact_state.json`.
+Isi laporan sengaja rinci supaya bisa dianalisis, bukan cuma satu angka:
 
-Skor itu proksi terukur (kesehatan vault + jejak kerja), bukan uji kausal. Laporkan apa adanya; jangan naikkan angka dengan mengarang kerja. Kalau pengiriman gagal, sebut kegagalannya di balasan akhir sesi, jangan diam.
+- kepala: skor + arah dibanding laporan lalu, waktu, HEAD, jumlah note, profil + pemicu sesi, baris `--note`;
+- penilaian per butir: kesehatan vault 40 (wajib 0, sampah 0, link mati tidak naik, yatim tidak naik), efek kerja 40 (jumlah note berubah, bonus kalau >= 10 note, jejak `data/`), alur 20 (note Keputusan/Rekap disentuh, index + report segar);
+- angka vault sebelum -> sekarang: link mati target + rujukan, pelanggaran wajib, sampah, yatim, note besar, anjuran belum dipenuhi, total note;
+- blok kandidat kerja berikutnya: link mati paling sering dirujuk, note besar yang bisa dipecah, yatim teratas, daftar note yang berubah di sesi itu;
+- tren sampai 5 laporan terakhir + arahnya.
 
-`--selftest` menguji rumus skor (batas 0 dan 100, kasus vault rusak). Jalankan setiap kali bobot komponen atau parsing lint diubah. `--send-if-stale N` melewati pengiriman kalau laporan terakhir lebih muda dari N jam, dipakai wrapper cron harian supaya sesi dan cron tidak dobel kirim.
+Pesan dipagu 1900 karakter (batas Discord); blok opsional dipotong dari yang paling kurang penting, rincian penuh selalu ada di `04-Sistem/vault_impact_state.json` (riwayat 10 laporan, lengkap dengan angka tiap laporan).
+
+`--selftest` menguji rumus skor (batas 0 dan 100, kasus vault rusak, pagu pesan). Jalankan setiap kali bobot komponen, parsing lint, atau tata letak laporan diubah. `--send-if-stale N` melewati pengiriman kalau laporan terakhir lebih muda dari N jam; dipakai wrapper cron harian supaya sesi dan cron tidak dobel kirim.
+
+Skor itu proksi terukur (kesehatan vault + jejak kerja), bukan uji kausal. Laporkan apa adanya; jangan naikkan angka dengan mengarang kerja. Isi `--note` supaya tren bisa dibaca manusia, bukan cuma angka naik-turun. Kalau pengiriman gagal, sebut kegagalannya di balasan akhir sesi, jangan diam.
 
 ## Distribusi skill (ubah satu, sebar ke semua)
 
